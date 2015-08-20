@@ -30,5 +30,81 @@
       <arg type='ay' name='path' direction='out'/>
     </method>
   </interface>
-</node>
 
+  <interface name='org.freedesktop.XdgApp.PermissionStore'>
+
+    <method name="ListTables">
+      <arg name='tables' type='as' direction='out'/>
+    </method>
+
+    <method name="Lookup">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='id' type='s' direction='in'/>
+      <arg name='permissions' type='a(sas)' direction='out'/>
+      <arg name='data' type='v' direction='out'/>
+    </method>
+
+    <method name="Create">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='id' type='s' direction='in'/>
+      <arg name='permissions' type='a(sas)' direction='in'/>
+      <arg name='data' type='v' direction='in'/>
+    </method>
+
+    <method name="Delete">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='id' type='s' direction='in'/>
+    </method>
+
+    <method name="Set">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='id' type='s' direction='in'/>
+      <arg name='data' type='v' direction='in'/>
+    </method>
+
+    <method name="SetPermission">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='id' type='s' direction='in'/>
+      <arg name='app' type='s' direction='in'/>
+      <arg name='permissions' type='as' direction='in'/>
+    </method>
+
+    <method name="List">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='ids' type='as' direction='out'/>
+    </method>
+
+    <method name="ListByData">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='data' type='v' direction='in'/>
+      <arg name='ids' type='as' direction='out'/>
+    </method>
+
+    <method name="ListByApp">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='app' type='s' direction='in'/>
+      <arg name='id_and_permissions' type='a(sas)' direction='out'/>
+    </method>
+
+    <!--
+    <method name="DumpTable">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='data' type='a(s{s(a(vas))}' direction='out'/>
+    </method>
+
+    <method name="DumpTableByApp">
+      <arg name='table' type='s' direction='in'/>
+      <arg name='app' type='s' direction='in'/>
+      <arg name='data' type='a(s{s(a(vas))}' direction='out'/>
+    </method>
+
+    <signal name='TableChanged'>
+      <arg name='table' direction='out' type='s'/>
+    </signal>
+
+    -->
+
+
+  </interface>
+
+</node>
