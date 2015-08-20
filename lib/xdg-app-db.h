@@ -38,28 +38,41 @@ typedef struct _XdgAppDbEntry XdgAppDbEntry;
 
 GType xdg_app_db_get_type (void);
 
-XdgAppDb *xdg_app_db_new               (const char     *path,
-                                              GError        **error);
-char **         xdg_app_db_list_ids          (XdgAppDb *self);
-char **         xdg_app_db_list_ids_by_app   (XdgAppDb *self,
-                                              const char     *app);
-char **         xdg_app_db_list_ids_by_value (XdgAppDb *self,
-                                              GVariant       *data);
-XdgAppDbEntry * xdg_app_db_lookup            (XdgAppDb *self,
-                                              const char     *id);
+XdgAppDb *     xdg_app_db_new               (const char     *path,
+                                             GError        **error);
+char **        xdg_app_db_list_ids          (XdgAppDb       *self);
+char **        xdg_app_db_list_ids_by_app   (XdgAppDb       *self,
+                                             const char     *app);
+char **        xdg_app_db_list_ids_by_value (XdgAppDb       *self,
+                                             GVariant       *data);
+XdgAppDbEntry *xdg_app_db_lookup            (XdgAppDb       *self,
+                                             const char     *id);
 
-XdgAppDbEntry  *xdg_app_db_entry_ref              (XdgAppDbEntry  *entry);
-void            xdg_app_db_entry_unref            (XdgAppDbEntry  *entry);
-GVariant *      xdg_app_db_entry_get_data         (XdgAppDbEntry  *entry);
-const char **   xdg_app_db_entry_list_apps        (XdgAppDbEntry  *entry);
-const char **   xdg_app_db_entry_list_permissions (XdgAppDbEntry  *entry,
-                                                   const char     *app);
-gboolean        xdg_app_db_entry_has_permission   (XdgAppDbEntry  *entry,
-                                                   const char     *app,
-                                                   const char     *permission);
-gboolean        xdg_app_db_entry_has_permissions  (XdgAppDbEntry  *entry,
-                                                   const char     *app,
-                                                   const char    **permissions);
+void           xdg_app_db_set_entry         (XdgAppDb       *self,
+                                             const char     *id,
+                                             XdgAppDbEntry  *entry);
+
+
+XdgAppDbEntry  *xdg_app_db_entry_ref                 (XdgAppDbEntry  *entry);
+void            xdg_app_db_entry_unref               (XdgAppDbEntry  *entry);
+GVariant *      xdg_app_db_entry_get_data            (XdgAppDbEntry  *entry);
+const char **   xdg_app_db_entry_list_apps           (XdgAppDbEntry  *entry);
+const char **   xdg_app_db_entry_list_permissions    (XdgAppDbEntry  *entry,
+                                                      const char     *app);
+gboolean        xdg_app_db_entry_has_permission      (XdgAppDbEntry  *entry,
+                                                      const char     *app,
+                                                      const char     *permission);
+gboolean        xdg_app_db_entry_has_permissions     (XdgAppDbEntry  *entry,
+                                                      const char     *app,
+                                                      const char    **permissions);
+
+XdgAppDbEntry  *xdg_app_db_entry_new                 (XdgAppDbEntry  *entry,
+                                                      GVariant       *data);
+XdgAppDbEntry  *xdg_app_db_entry_modify_data         (XdgAppDbEntry  *entry,
+                                                      GVariant       *data);
+XdgAppDbEntry  *xdg_app_db_entry_set_app_permissions (XdgAppDbEntry  *entry,
+                                                      const char     *app,
+                                                      const char    **permissions);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XdgAppDb, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(XdgAppDbEntry, xdg_app_db_entry_unref)

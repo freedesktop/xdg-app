@@ -35,7 +35,7 @@ struct XdgAppDb {
   char *path;
   GvdbTable *gvdb;
 
-  /* Map id => GVariant (data, array[(appid, perms)]) */
+  /* Map id => GVariant (data, sorted-dict[appid->perms]) */
   GvdbTable *main_table;
   GHashTable *main_updates;
 
@@ -332,19 +332,6 @@ xdg_app_db_list_ids_by_value (XdgAppDb *self,
   return (char **)g_ptr_array_free (res, FALSE);
 }
 
-XdgAppDbEntry  *
-xdg_app_db_entry_ref (XdgAppDbEntry  *entry)
-{
-  g_variant_ref ((GVariant *)entry);
-  return entry;
-}
-
-void
-xdg_app_db_entry_unref (XdgAppDbEntry  *entry)
-{
-  g_variant_unref ((GVariant *)entry);
-}
-
 /* Transfer: full */
 XdgAppDbEntry *
 xdg_app_db_lookup (XdgAppDb *self,
@@ -367,6 +354,31 @@ xdg_app_db_lookup (XdgAppDb *self,
     }
 
   return (XdgAppDbEntry *)res;
+}
+
+/* add, replace, or NULL entry to remove */
+void
+xdg_app_db_set_entry (XdgAppDb *self,
+                      const char *id,
+                      XdgAppDbEntry *entry)
+{
+  g_hash_table_insert (self->main_updates,
+                       g_strdup (id),
+                       xdg_app_db_entry_ref (entry));
+  /* TODO: Update app_updates */
+}
+
+XdgAppDbEntry  *
+xdg_app_db_entry_ref (XdgAppDbEntry  *entry)
+{
+  g_variant_ref ((GVariant *)entry);
+  return entry;
+}
+
+void
+xdg_app_db_entry_unref (XdgAppDbEntry  *entry)
+{
+  g_variant_unref ((GVariant *)entry);
 }
 
 /* Transfer: full */
@@ -492,4 +504,130 @@ xdg_app_db_entry_has_permissions (XdgAppDbEntry  *entry,
     }
 
   return TRUE;
+}
+
+static GVariant *
+make_entry (GVariant *data,
+            GVariant *app_permissions)
+{
+  return g_variant_new ("(v@a{sas})", data, app_permissions);
+}
+
+static GVariant *
+make_empty_app_permissions (void)
+{
+  return g_variant_new_array (G_VARIANT_TYPE ("{sas}"), NULL, 0);
+}
+
+static GVariant *
+make_permissions (const char *app, const char **permissions)
+{
+  static const char **empty = { NULL };
+  if (permissions == NULL)
+    permissions = empty;
+
+  return g_variant_new ("{s@as})",
+                        app,
+                        g_variant_new_strv (permissions, -1));
+}
+
+static GVariant *
+add_permissions (GVariant *app_permissions,
+                 GVariant *permissions)
+{
+  GVariantBuilder builder;
+  GVariantIter iter;
+  GVariant *child;
+  gboolean added = FALSE;
+  int cmp;
+  const char *new_app_id;
+  const char *child_app_id;
+  g_autoptr(GVariant) new_perms_array = NULL;
+
+  g_variant_get (permissions, "{&s@as}", &new_app_id, &new_perms_array);
+
+  g_variant_builder_init (&builder, G_VARIANT_TYPE_ARRAY);
+
+  /* Insert or replace permissions in sorted order */
+
+  g_variant_iter_init (&iter, app_permissions);
+  while ((child = g_variant_iter_next_value (&iter)))
+    {
+      g_autoptr(GVariant) old_perms_array = NULL;
+
+      g_variant_get (child, "{&s@as}", &child_app_id, &old_perms_array);
+
+      cmp = strcmp (new_app_id, child_app_id);
+      if (cmp == 0)
+        {
+          added = TRUE;
+          /* Replace old permissions */
+          g_variant_builder_add (&builder, "@{sas}", permissions);
+        }
+      else if (cmp < 0)
+        {
+          g_variant_builder_add (&builder, "@{sas}", child);
+        }
+      else /* cmp > 0 */
+        {
+          if (!added)
+            {
+              added = TRUE;
+              g_variant_builder_add (&builder, "@{sas}", permissions);
+            }
+          g_variant_builder_add_value (&builder, child);
+        }
+
+      g_variant_unref (child);
+    }
+
+  return g_variant_builder_end (&builder);
+}
+
+XdgAppDbEntry  *
+xdg_app_db_entry_new (XdgAppDbEntry  *entry,
+                      GVariant *data)
+{
+  GVariant *res;
+
+  if (data == NULL)
+    data = g_variant_new_byte (0);
+
+  res = make_entry (data,
+                    make_empty_app_permissions ());
+
+  return (XdgAppDbEntry  *)g_variant_ref_sink (res);
+}
+
+XdgAppDbEntry  *
+xdg_app_db_entry_modify_data (XdgAppDbEntry  *entry,
+                              GVariant *data)
+{
+  GVariant *v = (GVariant *)entry;
+  GVariant *res;
+
+  if (data == NULL)
+    data = g_variant_new_byte (0);
+
+  res = make_entry (data,
+                    g_variant_get_child_value (v, 1));
+  return (XdgAppDbEntry  *)g_variant_ref_sink (res);
+}
+
+/* NULL (or empty) permissions to remove permissions */
+XdgAppDbEntry  *
+xdg_app_db_entry_set_app_permissions (XdgAppDbEntry *entry,
+                                      const char *app,
+                                      const char **permissions)
+{
+  GVariant *v = (GVariant *)entry;
+  GVariant *res;
+  GVariant *old_data = g_variant_get_child_value (v, 0);
+  GVariant *old_permissions = g_variant_get_child_value (v, 1);
+
+  res = make_entry (old_data,
+                    add_permissions (old_permissions,
+                                     make_permissions (app,
+                                                       permissions)));
+  return (XdgAppDbEntry  *)g_variant_ref_sink (res);
 }
