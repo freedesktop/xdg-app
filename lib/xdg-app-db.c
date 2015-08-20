@@ -409,29 +409,40 @@ xdg_app_db_entry_list_apps (XdgAppDbEntry  *entry)
 }
 
 static GVariant *
-xdg_app_db_entry_get_permissions_variant (XdgAppDbEntry  *entry,
+xdg_app_db_entry_get_permissions_variant (XdgAppDbEntry *entry,
                                           const char *app_id)
 {
   GVariant *v = (GVariant *)entry;
   g_autoptr(GVariant) app_array = NULL;
-  GVariantIter iter;
   GVariant *child;
   GVariant *res = NULL;
+  gsize n_children, start, end, m;
+  const char *child_app_id;
+  int cmp;
 
   app_array = g_variant_get_child_value (v, 1);
 
-  g_variant_iter_init (&iter, app_array);
-  while (res == NULL &&
-         (child = g_variant_iter_next_value (&iter)))
-    {
-      const char *child_app_id;
+  n_children = g_variant_n_children (app_array);
 
+  start = 0;
+  end = n_children;
+  while (start < end)
+    {
+      m = (start + end) / 2;
+
+      child = g_variant_get_child_value (app_array, m);
       g_variant_get_child (child, 0, "&s", &child_app_id);
 
-      if (strcmp (app_id, child_app_id) == 0)
-        res = g_variant_get_child_value (child, 1);
-
-      g_variant_unref (child);
+      cmp = strcmp (app_id, child_app_id);
+      if (cmp == 0)
+        {
+          res = g_variant_get_child_value (child, 1);
+          break;
+        }
+      else if (cmp < 0)
+        end = m;
+      else /* cmp > 0 */
+        start = m + 1;
     }
 
   return res;
